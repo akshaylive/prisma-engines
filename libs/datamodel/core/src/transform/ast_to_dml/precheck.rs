@@ -34,7 +34,6 @@ impl Precheck {
                 ast::Top::Model(model) => {
                     Self::assert_is_not_a_reserved_scalar_type(&model.name, &mut errors);
                     top_level_types_checker.check_if_duplicate_exists(top, error_fn);
-                    Self::precheck_model(&model, &mut errors);
                 }
                 ast::Top::Type(custom_type) => {
                     Self::assert_is_not_a_reserved_scalar_type(&custom_type.name, &mut errors);
@@ -74,16 +73,6 @@ impl Precheck {
         for value in &enum_type.values {
             checker.check_if_duplicate_exists(value, |_| {
                 DatamodelError::new_duplicate_enum_value_error(&enum_type.name.name, &value.name.name, value.span)
-            });
-        }
-        errors.append(&mut checker.errors());
-    }
-
-    fn precheck_model(model: &ast::Model, errors: &mut Diagnostics) {
-        let mut checker = DuplicateChecker::new();
-        for field in &model.fields {
-            checker.check_if_duplicate_exists(field, |_| {
-                DatamodelError::new_duplicate_field_error(&model.name.name, &field.name.name, field.identifier().span)
             });
         }
         errors.append(&mut checker.errors());
