@@ -642,6 +642,7 @@ mod tests {
                             FieldArity::List,
                             RelationInfo {
                                 to: "User".to_string(),
+                                disambiguator: String::new(),
                                 fields: vec![],
                                 references: vec![],
                                 name: "CityToUser".to_string(),
@@ -705,6 +706,7 @@ mod tests {
                             RelationInfo {
                                 name: "CityToUser".to_string(),
                                 to: "City".to_string(),
+                                disambiguator: String::new(),
                                 fields: vec!["city_id".to_string(), "city_name".to_string()],
                                 references: vec!["id".to_string(), "name".to_string()],
                                 on_delete: OnDeleteStrategy::None,
@@ -980,6 +982,7 @@ mod tests {
                             FieldArity::List,
                             RelationInfo {
                                 to: "User".to_string(),
+                                disambiguator: String::new(),
                                 fields: vec![],
                                 references: vec![],
                                 name: "CityToUser".to_string(),
@@ -1022,6 +1025,7 @@ mod tests {
                             RelationInfo {
                                 name: "CityToUser".to_string(),
                                 to: "City".to_string(),
+                                disambiguator: String::new(),
                                 fields: vec!["city_id".to_string()],
                                 references: vec!["id".to_string()],
                                 on_delete: OnDeleteStrategy::None,

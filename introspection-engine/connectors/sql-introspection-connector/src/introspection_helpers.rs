@@ -104,6 +104,7 @@ pub fn calculate_many_to_many_field(
 ) -> RelationField {
     let relation_info = RelationInfo {
         name: relation_name,
+        disambiguator: String::new(),
         fields: vec![],
         to: opposite_foreign_key.referenced_table.clone(),
         references: opposite_foreign_key.referenced_columns.clone(),
@@ -202,6 +203,7 @@ pub(crate) fn calculate_relation_field(
 
     let relation_info = RelationInfo {
         name: calculate_relation_name(schema, foreign_key, table)?,
+        disambiguator: String::new(),
         fields: foreign_key.columns.clone(),
         to: foreign_key.referenced_table.clone(),
         references: foreign_key.referenced_columns.clone(),
@@ -237,6 +239,7 @@ pub(crate) fn calculate_backrelation_field(
             let new_relation_info = RelationInfo {
                 name: relation_info.name.clone(),
                 to: model.name.clone(),
+                disambiguator: String::new(),
                 fields: vec![],
                 references: vec![],
                 on_delete: OnDeleteStrategy::None,
