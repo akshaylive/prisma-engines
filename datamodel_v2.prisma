@@ -45,3 +45,22 @@ model Record {
   container    Container      @relation(fields: [containerId], references: [id])
   containerId  Int
 }
+
+model A {
+  id Int @id
+  c  C?
+}
+
+model B {
+  id Int @id
+  c  C?
+}
+
+model C {
+  id       Int @id
+
+  targetType String
+  targetId   Int
+  target     A @relation(fields: [targetId], references: [id], disambiguator: targetType)
+  target     B @relation(fields: [targetId], references: [id], disambiguator: targetType)
+}
