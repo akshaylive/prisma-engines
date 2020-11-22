@@ -28,6 +28,10 @@ impl AttributeValidator<dml::Field> for RelationAttributeValidator {
                 rf.relation_info.references = related_fields.as_array().to_literal_vec()?;
             }
 
+            if let Ok(disambiguator_arg) = args.default_arg("disambiguator") {
+                rf.relation_info.disambiguator = disambiguator_arg.as_constant_literal()?;
+            }
+
             if let Ok(base_fields) = args.arg("fields") {
                 rf.relation_info.fields = base_fields.as_array().to_literal_vec()?;
             }

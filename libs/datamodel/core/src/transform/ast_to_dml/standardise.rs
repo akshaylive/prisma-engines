@@ -223,6 +223,7 @@ impl Standardiser {
                 if field.is_singular() {
                     let relation_info = dml::RelationInfo {
                         to: model.name.clone(),
+                        disambiguator: rel_info.disambiguator.clone(),
                         fields: vec![],
                         references: vec![],
                         name: rel_info.name.clone(),
@@ -294,6 +295,7 @@ impl Standardiser {
 
                     let relation_info = dml::RelationInfo {
                         to: model.name.clone(),
+                        disambiguator: rel_info.disambiguator.clone(),
                         fields: underlying_field_names,
                         references: unique_criteria_field_names,
                         name: rel_info.name.clone(),

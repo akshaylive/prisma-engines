@@ -3,6 +3,8 @@
 pub struct RelationInfo {
     /// The target model of the relation.
     pub to: String,
+    /// The disambiguator to be used.
+    pub disambiguator: String,
     /// The fields forming the relation.
     pub fields: Vec<String>,
     /// The target field of the relation a.k.a. `references`
@@ -18,6 +20,7 @@ impl PartialEq for RelationInfo {
     //ignores the relation name for reintrospection
     fn eq(&self, other: &Self) -> bool {
         self.to == other.to
+            && self.disambiguator == other.disambiguator
             && self.fields == other.fields
             && self.references == other.references
             && self.on_delete == other.on_delete
@@ -31,6 +34,7 @@ impl RelationInfo {
         RelationInfo {
             to: String::from(to),
             fields: Vec::new(),
+            disambiguator: String::new(),
             references: Vec::new(),
             name: String::new(),
             on_delete: OnDeleteStrategy::None,
