@@ -158,9 +158,9 @@ impl Model {
     }
 
     /// Finds a relation field by name and returns a mutable reference.
-    pub fn find_relation_field_mut(&mut self, name: &str) -> &mut RelationField {
+    pub fn find_relation_field_mut(&mut self, name: &str, to: &str) -> &mut RelationField {
         self.relation_fields_mut()
-            .find(|rf| rf.name == *name)
+            .find(|rf| rf.name == *name && rf.relation_info.to == to)
             .expect("We assume an internally valid datamodel before mutating.")
     }
 
