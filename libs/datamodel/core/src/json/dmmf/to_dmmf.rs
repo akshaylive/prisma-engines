@@ -105,6 +105,7 @@ fn field_to_dmmf(model: &dml::Model, field: &dml::Field) -> Field {
         default: default_value_to_serde(&field.default_value().cloned()),
         is_unique: field.is_unique(),
         relation_name: get_relation_name(field),
+        relation_disambiguator: get_relation_disambiguator(field),
         relation_from_fields: get_relation_from_fields(field),
         relation_to_fields: get_relation_to_fields(field),
         relation_on_delete: get_relation_delete_strategy(field),
@@ -180,6 +181,13 @@ fn type_to_string(scalar: &ScalarType) -> String {
 fn get_relation_name(field: &dml::Field) -> Option<String> {
     match &field {
         dml::Field::RelationField(rf) => Some(rf.relation_info.name.clone()),
+        _ => None,
+    }
+}
+
+fn get_relation_disambiguator(field: &dml::Field) -> Option<String> {
+    match &field {
+        dml::Field::RelationField(rf) => Some(rf.relation_info.disambiguator.clone()),
         _ => None,
     }
 }
