@@ -1,5 +1,6 @@
 use super::*;
 use prisma_models::dml::DefaultValue;
+use std::collections::{HashMap};
 
 pub(crate) fn create_input_types(
     ctx: &mut BuilderContext,
@@ -83,7 +84,9 @@ fn relation_input_fields_for_checked_create(
     model: &ModelRef,
     parent_field: Option<&RelationFieldRef>,
 ) -> Vec<InputField> {
-    model
+    let mut polymorphic_cache: HashMap<String, Vec<(InputType, bool)>> = HashMap::new();
+
+    let non_polymorphic_relation_input_fields: Vec<InputField> = model
         .fields()
         .relation()
         .into_iter()
@@ -127,7 +130,20 @@ fn relation_input_fields_for_checked_create(
                     .scalar_fields()
                     .all(|scalar_field| scalar_field.default_value.is_some());
 
-                let input_field = input_field(rf.name.clone(), InputType::object(input_object), None);
+                let input_type = InputType::object(input_object);
+                let input_field = input_field(rf.name.clone(), input_type.clone(), None);
+
+                if rf.relation_info.disambiguator != "" {
+                    let mut new_vec = vec![(input_type.clone(), rf.is_required && !all_required_scalar_fields_have_defaults)];
+                    match polymorphic_cache.get(&input_field.name.clone()) {
+                        Some(vec) => {
+                            new_vec.append(&mut vec.clone());
+                        },
+                        None => {}
+                    }
+                    polymorphic_cache.insert(input_field.name.clone(), new_vec);
+                    return None;
+                }
 
                 if rf.is_required && !all_required_scalar_fields_have_defaults {
                     Some(input_field)
@@ -136,7 +152,24 @@ fn relation_input_fields_for_checked_create(
                 }
             }
         })
-        .collect()
+        .collect();
+    let mut polymorphic_relation_input_fields: Vec<InputField> = polymorphic_cache
+        .iter()
+        .map(|(field_name, input_types_with_requirement)| {
+            let strictly_required: bool = input_types_with_requirement.clone().iter().all(|&(_, required)| required);
+            let input_types: Vec<InputType> = input_types_with_requirement.clone().iter().map(|(input_type, _)| input_type.clone()).collect();
+            let input_field = input_field(field_name, input_types, None);
+
+            if strictly_required {
+                input_field
+            } else {
+                input_field.optional()
+            }
+        })
+        .collect();
+    let mut combined: Vec<InputField> = non_polymorphic_relation_input_fields.clone();
+    combined.append(&mut polymorphic_relation_input_fields);
+    combined
 }
 
 fn field_should_be_kept_for_checked_create_input_type(field: &ScalarFieldRef) -> bool {
