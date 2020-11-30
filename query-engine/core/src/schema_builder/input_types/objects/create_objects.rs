@@ -1,5 +1,9 @@
 use super::*;
 use prisma_models::dml::DefaultValue;
+use std::collections::{HashMap};
+use prisma_models::prelude::dml::RelationInfo;
+use once_cell::sync::OnceCell;
+use itertools::Itertools;
 
 pub(crate) fn create_input_types(
     ctx: &mut BuilderContext,
@@ -83,7 +87,9 @@ fn relation_input_fields_for_checked_create(
     model: &ModelRef,
     parent_field: Option<&RelationFieldRef>,
 ) -> Vec<InputField> {
-    model
+    let mut polymorphic_cache: HashMap<String, Vec<(InputField, RelationInfo)>> = HashMap::new();
+
+    let non_polymorphic_relation_input_fields: Vec<InputField> = model
         .fields()
         .relation()
         .into_iter()
@@ -129,6 +135,18 @@ fn relation_input_fields_for_checked_create(
 
                 let input_field = input_field(rf.name.clone(), InputType::object(input_object), None);
 
+                if rf.relation_info.disambiguator != "" {
+                    let mut new_vec = vec![(input_field.clone(), rf.relation_info.clone())];
+                    match polymorphic_cache.get(&input_field.name.clone()) {
+                        Some(vec) => {
+                            new_vec.append(&mut vec.clone());
+                        },
+                        None => {}
+                    }
+                    polymorphic_cache.insert(input_field.name.clone(), new_vec);
+                    return None;
+                }
+
                 if rf.is_required && !all_required_scalar_fields_have_defaults {
                     Some(input_field)
                 } else {
@@ -136,7 +154,43 @@ fn relation_input_fields_for_checked_create(
                 }
             }
         })
-        .collect()
+        .collect();
+    let mut polymorphic_relation_input_fields: Vec<InputField> = polymorphic_cache
+        .iter()
+        .map(|(key, val)| {
+            // Create new type here for OneOfModelModelModel
+            let mut sorted_fields = val.clone();
+            sorted_fields.sort_by(|(_, relation_info_a),(_, relation_info_b)| relation_info_a.to.cmp(&relation_info_b.to));
+            let named_field = create_named_field_for_polymorphic_creation_type(sorted_fields.clone());
+
+            let ident = Identifier::new(named_field.clone(), PRISMA_NAMESPACE);
+            let input_fields: Vec<InputFieldRef> = sorted_fields
+                .iter()
+                .map(|(input_field, relation_info)| {
+                    let mut cloned_input = input_field.clone();
+                    cloned_input.name = relation_info.to.clone();
+                    Arc::new(cloned_input)
+                })
+                .collect();
+            let input_object = Arc::new(InputObjectType {
+                identifier: ident.clone(),
+                constraints: InputObjectTypeConstraints {
+                    min_num_fields: Some(1),
+                    max_num_fields: Some(1),
+                },
+                fields: OnceCell::from(input_fields),
+            });
+            ctx.cache_input_type(ident, input_object.clone());
+            input_field(key, InputType::object(Arc::downgrade(&input_object)), None)
+        })
+        .collect();
+    let mut combined: Vec<InputField> = non_polymorphic_relation_input_fields.clone();
+    combined.append(&mut polymorphic_relation_input_fields);
+    combined
+}
+
+fn create_named_field_for_polymorphic_creation_type(fields: Vec<(InputField, RelationInfo)>) -> String {
+    format!("OneOf{}CreateInput", fields.iter().map(|(_, ri)| ri.to.clone()).join(""))
 }
 
 fn field_should_be_kept_for_checked_create_input_type(field: &ScalarFieldRef) -> bool {

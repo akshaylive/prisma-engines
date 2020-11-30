@@ -41,7 +41,7 @@ impl<T> IntoArc<T> for Weak<T> {
     }
 }
 
-#[derive(Debug, PartialEq)]
+#[derive(Debug, PartialEq, Clone)]
 pub struct Deprecation {
     pub since_version: String,
     pub planned_removal_version: Option<String>,

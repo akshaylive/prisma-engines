@@ -77,7 +77,7 @@ impl InputObjectType {
     }
 }
 
-#[derive(Debug, PartialEq)]
+#[derive(Debug, PartialEq, Clone)]
 pub struct InputField {
     pub name: String,
     pub default_value: Option<dml::DefaultValue>,
