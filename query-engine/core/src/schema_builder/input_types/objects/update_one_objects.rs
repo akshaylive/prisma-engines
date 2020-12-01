@@ -1,5 +1,6 @@
 use super::*;
 use prisma_models::dml::DefaultValue;
+use std::collections::{HashMap};
 
 pub(crate) fn update_one_input_types(
     ctx: &mut BuilderContext,
@@ -204,7 +205,9 @@ fn relation_input_fields_for_checked_update_one(
     model: &ModelRef,
     parent_field: Option<&RelationFieldRef>,
 ) -> Vec<InputField> {
-    model
+    let mut polymorphic_cache: HashMap<String, Vec<InputType>> = HashMap::new();
+
+    let non_polymorphic_relation_input_fields: Vec<InputField> = model
         .fields()
         .relation()
         .into_iter()
@@ -247,11 +250,35 @@ fn relation_input_fields_for_checked_update_one(
                         Arc::downgrade(&input_object)
                     }
                 };
+                let input_type = InputType::object(input_object);
+                let input_field = input_field(rf.name.clone(), input_type.clone(), None).optional();
 
-                Some(input_field(rf.name.clone(), InputType::object(input_object), None).optional())
+                if rf.relation_info.disambiguator != "" {
+                    let mut new_vec = vec![input_type.clone()];
+                    match polymorphic_cache.get(&input_field.name.clone()) {
+                        Some(vec) => {
+                            new_vec.append(&mut vec.clone());
+                        },
+                        None => {}
+                    }
+                    polymorphic_cache.insert(input_field.name.clone(), new_vec);
+                    return None;
+                }
+
+                Some(input_field)
             }
         })
-        .collect()
+        .collect();
+    let mut polymorphic_relation_input_fields: Vec<InputField> = polymorphic_cache
+        .iter()
+        .map(|(field_name, input_types_with_requirement)| {
+          let input_types: Vec<InputType> = input_types_with_requirement.clone().iter().map(|input_type| input_type.clone()).collect();
+          input_field(field_name, input_types, None).optional()
+        })
+        .collect();
+    let mut combined: Vec<InputField> = non_polymorphic_relation_input_fields.clone();
+    combined.append(&mut polymorphic_relation_input_fields);
+    combined
 }
 
 /// For unchecked update input types only. Compute input fields for checked relational fields.
